@@ -33,6 +33,7 @@ export default {
   data: () => ({ 
       stateString: "Before processing",
       image: new Image(),
+      processedImageURL: null,
       kernelTimeSecond: 0,
       wallTimeSecond: 0,
   }),
@@ -57,17 +58,25 @@ export default {
       };
     },
 
-    state: function(){
+    state: async function(){
       switch(this.state){
         case this.STATE.BEFORE_PROCESSING:
           this.stateString = "Before processing";
           this.wallTimeSecond = 0;
+          // TODO: wait for new image loading if necessary
+          // if(this.image.src != this.imgsrc)
+          //   this.image = await loadImage(this.imgsrc);
           this.preview();
           break;
 
         case this.STATE.PROCESSING:
           this.stateString = "Processing...";
-          this.processImage();
+          await this.processImage();
+          this.canvas.toBlob((blob) => {
+            window.URL.revokeObjectURL(this.processedImageURL);
+            this.processedImageURL = window.URL.createObjectURL(blob);
+            this.$emit("processing-complete", this.processedImageURL);
+          });
           break;
 
         case this.STATE.AFTER_PROCESSING:
@@ -112,8 +121,6 @@ export default {
       clearInterval(timerID);
       const timeEnd = performance.now();
       this.wallTimeSecond = ((timeEnd - timeStart) / 1000).toFixed(2);
-      // must emit here, not outside (unless `processImage` is awaited)
-      this.$emit("processing-complete");
       
       // const timeInfo = await processFunction(this.image, this.$refs.canvas);
       // this.kernelTimeSecond = (timeInfo.kernelMs / 1000).toFixed(2);

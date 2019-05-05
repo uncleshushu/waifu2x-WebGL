@@ -11,7 +11,7 @@
             depressed
             @click="$refs.fileInput.click()"
           >
-            {{fileNameDisplay}}
+            {{imageFilenameDisplay}}
             <input 
               type="file"
               ref="fileInput"
@@ -52,10 +52,16 @@
             block
             round
             class="teal--text"
-            @click=";"
+            @click="$refs.downloadAnchor.click()"
           >
             Download
             <v-icon right>cloud_download</v-icon>
+            <a 
+              ref="downloadAnchor" 
+              :href="downloadLink" 
+              :download="processedImageFileName"
+            >
+            </a>
           </v-btn>
         </v-flex>
 
@@ -69,7 +75,9 @@ export default {
   props: {
     modelNames: Array,
     defaultModelSelected: String,
+    defaultImageFilename: String,
     state: Number,
+    downloadLink: String,
   },
 
   data() {
@@ -77,7 +85,8 @@ export default {
       modelSelectDisabled: false,
       modelSelected: this.defaultModelSelected,
       fileInputDisabled: false,
-      fileName: "tom.jpg",
+      imageFileName: this.defaultImageFilename,
+      imageSrc: null,
       startDisabled: false,
       startButtonText: "Run waifu2x",
       downloadDisabled: true,
@@ -86,17 +95,21 @@ export default {
 
   computed: {
     imageName() {
-      return this.fileName.substring(0, this.fileName.lastIndexOf("."));
+      return this.imageFileName.substring(0, this.imageFileName.lastIndexOf("."));
     },
 
-    fileNameDisplay() {
+    imageFilenameDisplay() {
       if(this.imageName.length > 8){
-        const extension = this.fileName.substring(this.fileName.lastIndexOf("."));
+        const extension = this.imageFileName.substring(this.imageFileName.lastIndexOf("."));
         return this.imageName.substring(0, 3) + "..." + this.imageName.substring(this.imageName.length - 3) + extension;
       }
       else{
-        return this.fileName;
+        return this.imageFileName;
       }
+    },
+
+    processedImageFileName() {
+      return this.imageName + "_" + this.modelSelected + ".png";
     },
   },
 
@@ -138,10 +151,10 @@ export default {
 
     onFileChange(event) {
       const imageFile = event.target.files[0];
-      this.fileName = imageFile.name;
-      // TODO: 
-      const imageSrc = window.URL.createObjectURL(imageFile);
-      this.$emit("file-change", imageSrc, this.imageName);
+      this.imageFileName = imageFile.name;
+      window.URL.revokeObjectURL(this.imageSrc);
+      this.imageSrc = window.URL.createObjectURL(imageFile);
+      this.$emit("file-change", this.imageSrc);
     },
   },
 };

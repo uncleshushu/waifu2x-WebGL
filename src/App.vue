@@ -26,6 +26,8 @@
                       ref="settingPanel"
                       :default-model-selected="waifu2xModelNameSelected"
                       :model-names="waifu2xModelNames"
+                      :default-image-filename="defaultImageFileName"
+                      :download-link="downloadLink"
                       :state="state"
                       @file-change="onFileChange"
                       @model-change="onModelChange" 
@@ -81,12 +83,13 @@ export default {
   data() {
     return {
       imageSrc: require("./assets/tom.jpg"),
-      imageName: "tom",
+      defaultImageFileName: "tom.jpg",
       waifu2xModelNames: Object.keys(waifu2x.MODEL_INFO_MAP),
       waifu2xModelNameSelected: "UpConv-7",
       waifu2xModel: null,
       waifu2xProcessingFunction: null,
       state: this.STATE.BEFORE_PROCESSING,
+      downloadLink: null,
     };
   },
 
@@ -136,8 +139,9 @@ export default {
       this.state = this.STATE.PROCESSING;
     },
 
-    onWaifu2xComplete() {
+    onWaifu2xComplete(downloadLink) {
       this.state = this.STATE.AFTER_PROCESSING;
+      this.downloadLink = downloadLink;
     },
 
     onModelChange(waifu2xModelNameSelected) {
@@ -145,9 +149,8 @@ export default {
       this.state = this.STATE.BEFORE_PROCESSING;
     },
 
-    onFileChange(imageSrc, imageName) {
+    onFileChange(imageSrc) {
       this.imageSrc = imageSrc;
-      this.imageName = imageName;
       this.state = this.STATE.BEFORE_PROCESSING;
     },
   },
