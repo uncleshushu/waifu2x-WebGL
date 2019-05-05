@@ -26,9 +26,10 @@
                       ref="settingPanel"
                       :default-model-selected="waifu2xModelNameSelected"
                       :model-names="waifu2xModelNames"
+                      :state="state"
                       @file-change="onFileChange"
                       @model-change="onModelChange" 
-                      @start-waifu2x="onStartWaifu2x"
+                      @waifu2x-start="onWaifu2xStart"
                     />
                   </v-flex>
 
@@ -43,6 +44,9 @@
                     <ProcessingCanvas
                       ref="canvas"
                       :imgsrc="imageSrc"
+                      :processing-function="waifu2xProcessingFunction"
+                      :state="state"
+                      @processing-complete="onWaifu2xComplete"
                     />
                   </v-flex>
 
@@ -81,6 +85,8 @@ export default {
       waifu2xModelNames: Object.keys(waifu2x.MODEL_INFO_MAP),
       waifu2xModelNameSelected: "UpConv-7",
       waifu2xModel: null,
+      waifu2xProcessingFunction: null,
+      state: this.STATE.BEFORE_PROCESSING,
     };
   },
 
@@ -108,7 +114,7 @@ export default {
   },
 
   methods: {
-    async onStartWaifu2x(updatePanel) {
+    onWaifu2xStart() {
       // const waifu2xWithTFTiming = (image, canvas) => waifu2x.tf_time(
       //                             waifu2x.enlarge_split_overlapped_no_async, 
       //                             image, canvas, 
@@ -116,31 +122,33 @@ export default {
       //                             this.waifu2xModelInfo.margin_size,
       //                             this.waifu2xModelInfo.patch_size);
 
-      // await this.$refs.canvas.processImage(waifu2xWithTFTiming);
-
       let patchSize = this.waifu2xModelInfo.patch_size;
       if (/Mobi|Android/.test(navigator.userAgent)) {
         // mobile!
         patchSize = Math.round(patchSize / 2);
       }
  
-      const waifu2xProcess = (image, canvas) => waifu2x.enlarge_split_overlapped(
-                                image, canvas, 
-                                this.waifu2xModel,
-                                this.waifu2xModelInfo.margin_size,
-                                patchSize);
-      await this.$refs.canvas.processImage(waifu2xProcess);
-      updatePanel();
+      this.waifu2xProcessingFunction = (image, canvas) => waifu2x.enlarge_split_overlapped(
+                                                            image, canvas, 
+                                                            this.waifu2xModel,
+                                                            this.waifu2xModelInfo.margin_size,
+                                                            patchSize);
+      this.state = this.STATE.PROCESSING;
+    },
+
+    onWaifu2xComplete() {
+      this.state = this.STATE.AFTER_PROCESSING;
     },
 
     onModelChange(waifu2xModelNameSelected) {
       this.waifu2xModelNameSelected = waifu2xModelNameSelected;
-      this.$refs.canvas.preview();
+      this.state = this.STATE.BEFORE_PROCESSING;
     },
 
     onFileChange(imageSrc, imageName) {
       this.imageSrc = imageSrc;
       this.imageName = imageName;
+      this.state = this.STATE.BEFORE_PROCESSING;
     },
   },
 };

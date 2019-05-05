@@ -4,15 +4,15 @@
     <canvas ref="canvas"></canvas>
     
     <v-card-title primary-title>
-      State: {{state}}
+      State: {{stateString}}
     </v-card-title>
 
     <v-card-title primary-title>
-      Original Size: {{imageWidth}} × {{imageHeight}}
+      Original Size: {{image.width}} × {{image.height}}
     </v-card-title>
 
     <v-card-title primary-title>
-      Scaled Size: {{imageWidth * 2}} × {{imageHeight * 2}}
+      Scaled Size: {{image.width * 2}} × {{image.height * 2}}
     </v-card-title>
 
     <v-card-title primary-title ref="timeInfo">  
@@ -26,70 +26,94 @@
 export default {
   props: {
     imgsrc: String,
+    processingFunction: Function,
+    state: Number,
   },
 
   data: () => ({ 
-      state: "Before processing",
-      imageWidth: 0,
-      imageHeight: 0,
+      stateString: "Before processing",
+      image: new Image(),
       kernelTimeSecond: 0,
       wallTimeSecond: 0,
   }),
 
   computed: {
-    image: function() {
-      let image = new Image();
-      image.src = this.imgsrc;
-      return image;
-    },
-
     canvas: function() {
       return this.$refs.canvas;
     },
 
-    context: function() {
+    context2D: function() {
       return this.canvas.getContext("2d");
     },
   },
 
   watch: {
     imgsrc: function(){
-      this.image.onload = this.preview;
+      let image = new Image();
+      image.src = this.imgsrc;
+      image.onload = () => {
+        this.image = image;
+        this.preview();
+      };
     },
+
+    state: function(){
+      switch(this.state){
+        case this.STATE.BEFORE_PROCESSING:
+          this.stateString = "Before processing";
+          this.wallTimeSecond = 0;
+          this.preview();
+          break;
+
+        case this.STATE.PROCESSING:
+          this.stateString = "Processing...";
+          this.processImage();
+          break;
+
+        case this.STATE.AFTER_PROCESSING:
+          this.stateString = "Processing complete";
+          break;
+      }
+    }
   },
 
   created: function(){
-    this.image.onload = this.preview;
+    let image = new Image();
+    image.src = this.imgsrc;
+    image.onload = () => {
+      this.image = image;
+      this.preview();
+    };
   },
 
   methods: {
     preview() { 
-      this.state = "Before processing";
-      this.imageWidth = this.image.naturalWidth;
-      this.imageHeight = this.image.naturalHeight;
-      this.wallTimeSecond = 0;
       this.canvas.width = this.image.naturalWidth * 2;
       this.canvas.height = this.image.naturalHeight * 2;
-      this.context.globalAlpha = 0.5;
-      this.context.drawImage(this.image, 0, 0, 
+      this.context2D.globalAlpha = 0.5;
+      this.context2D.drawImage(this.image, 0, 0, 
                               this.canvas.width,
                               this.canvas.height);
     },
 
-    async processImage(processFunction) {
-      if(this.context.globalAlpha == 1.0){
+    async processImage() {
+      if(this.context2D.globalAlpha == 1.0){
+        // rerun 
         this.preview();
       }
 
-      this.state = "Processing..."
-      this.context.globalAlpha = 1.0;
+      this.wallTimeSecond = 0;
       const timeStart = performance.now();
       let timerID = setInterval(() => this.wallTimeSecond += 1, 1000);
-      await processFunction(this.image, this.context);
+
+      this.context2D.globalAlpha = 1.0;
+      await this.processingFunction(this.image, this.context2D);
+      
       clearInterval(timerID);
       const timeEnd = performance.now();
       this.wallTimeSecond = ((timeEnd - timeStart) / 1000).toFixed(2);
-      this.state = "Processing complete";
+      // must emit here, not outside (unless `processImage` is awaited)
+      this.$emit("processing-complete");
       
       // const timeInfo = await processFunction(this.image, this.$refs.canvas);
       // this.kernelTimeSecond = (timeInfo.kernelMs / 1000).toFixed(2);

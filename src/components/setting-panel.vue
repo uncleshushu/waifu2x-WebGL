@@ -40,7 +40,7 @@
             block
             round
             class="pink--text"
-            @click="onStartWaifu2x()"
+            @click="onWaifu2xStart()"
           >
             {{startButtonText}}
           </v-btn>
@@ -69,6 +69,7 @@ export default {
   props: {
     modelNames: Array,
     defaultModelSelected: String,
+    state: Number,
   },
 
   data() {
@@ -99,36 +100,47 @@ export default {
     },
   },
 
-  methods: {
-    onStartWaifu2x() {
-      this.startDisabled = true;
-      this.startButtonText = "Running..."
-      this.fileInputDisabled = true;
-      this.modelSelectDisabled = true;
-      this.downloadDisabled = true;
+  watch: {
+    state: function(){
+      switch(this.state){
+        case this.STATE.BEFORE_PROCESSING:
+          this.startButtonText = "Run waifu2x";
+          this.downloadDisabled = true;
+          break;
 
-      let self = this;
-      this.$emit("start-waifu2x", () => {
-        self.startDisabled = false;
-        self.startButtonText = "Rerun waifu2x";
-        self.fileInputDisabled = false;
-        self.modelSelectDisabled = false;
-        self.downloadDisabled = false;
-      });
+        case this.STATE.PROCESSING:
+          this.startDisabled = true;
+          this.startButtonText = "Running..."
+          this.fileInputDisabled = true;
+          this.modelSelectDisabled = true;
+          this.downloadDisabled = true;
+          break;
+
+        case this.STATE.AFTER_PROCESSING:
+          this.startDisabled = false;
+          this.startButtonText = "Rerun waifu2x";
+          this.fileInputDisabled = false;
+          this.modelSelectDisabled = false;
+          this.downloadDisabled = false;
+          break;
+      }
+    },
+  },
+
+  methods: {
+    onWaifu2xStart() {
+      this.$emit("waifu2x-start");
     },
 
     onModelChange() {
-      this.startButtonText = "Run waifu2x";
-      this.downloadDisabled = true;
       this.$emit('model-change', this.modelSelected);
     },
 
     onFileChange(event) {
       const imageFile = event.target.files[0];
       this.fileName = imageFile.name;
+      // TODO: 
       const imageSrc = window.URL.createObjectURL(imageFile);
-      this.startButtonText = "Run waifu2x";
-      this.downloadDisabled = true;
       this.$emit("file-change", imageSrc, this.imageName);
     },
   },
