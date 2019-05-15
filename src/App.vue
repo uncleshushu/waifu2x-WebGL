@@ -93,8 +93,14 @@ export default {
     };
   },
 
-   created: async function() {
+  created: async function() {
     this.waifu2xModel =  await waifu2x.loadModel(this.waifu2xModelPath);
+    this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge_split_overlapped(
+                                                            image, canvasContext2D, 
+                                                            this.waifu2xModel,
+                                                            this.waifu2xModelInfo.margin_size,
+                                                            this.waifu2xPatchSize);
+    this.waifu2xWarmUp();
   },
 
   computed: {
@@ -104,15 +110,15 @@ export default {
 
     waifu2xModelPath() {
       return `${process.env.BASE_URL}tfjs_models/${this.waifu2xModelInfo.dir_name}/model.json`;
-    }
-  },
+    },
 
-  watch: {
-    waifu2xModelNameSelected: async function() {
-      if(this.waifu2xModel){
-        this.waifu2xModel.dispose();
+    waifu2xPatchSize() {
+      let patchSize =  this.waifu2xModelInfo.patch_size;
+      if (/Mobi|Android/.test(navigator.userAgent)) {
+        // mobile!
+        patchSize = Math.round(patchSize / 2);
       }
-      this.waifu2xModel =  await waifu2x.loadModel(this.waifu2xModelPath);
+      return patchSize;
     },
   },
 
@@ -124,18 +130,7 @@ export default {
       //                             this.waifu2xModel,
       //                             this.waifu2xModelInfo.margin_size,
       //                             this.waifu2xModelInfo.patch_size);
-
-      let patchSize = this.waifu2xModelInfo.patch_size;
-      if (/Mobi|Android/.test(navigator.userAgent)) {
-        // mobile!
-        patchSize = Math.round(patchSize / 2);
-      }
  
-      this.waifu2xProcessingFunction = (image, canvas) => waifu2x.enlarge_split_overlapped(
-                                                            image, canvas, 
-                                                            this.waifu2xModel,
-                                                            this.waifu2xModelInfo.margin_size,
-                                                            patchSize);
       this.state = this.STATE.PROCESSING;
     },
 
@@ -144,14 +139,50 @@ export default {
       this.downloadLink = downloadLink;
     },
 
-    onModelChange(waifu2xModelNameSelected) {
+    async onModelChange(waifu2xModelNameSelected) {
       this.waifu2xModelNameSelected = waifu2xModelNameSelected;
+      if(this.waifu2xModel){
+        this.waifu2xModel.dispose();
+      }
+      this.waifu2xModel =  await waifu2x.loadModel(this.waifu2xModelPath);
+      this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge_split_overlapped(
+                                                            image, canvasContext2D, 
+                                                            this.waifu2xModel,
+                                                            this.waifu2xModelInfo.margin_size,
+                                                            this.waifu2xPatchSize);
+      this.waifu2xWarmUp();
+      
       this.state = this.STATE.BEFORE_PROCESSING;
     },
 
     onFileChange(imageSrc) {
       this.imageSrc = imageSrc;
       this.state = this.STATE.BEFORE_PROCESSING;
+    },
+
+    waifu2xWarmUp() {
+      let canvas = document.createElement("canvas");
+      // 1.
+      // canvas.width = this.waifu2xPatchSize + Math.round(this.waifu2xPatchSize / 2);
+      // canvas.height = canvas.width;
+      
+      // 2.
+      // canvas.width = this.waifu2xPatchSize + Math.round(this.waifu2xPatchSize / 2);
+      // canvas.height = this.waifu2xPatchSize;
+      
+      // 3.
+      canvas.width = this.waifu2xPatchSize;
+      canvas.height = canvas.width;
+      
+      let context = canvas.getContext("2d");
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      let image = new Image(canvas.width, canvas.height);
+      image.onload = () => {
+        canvas.width *= 2;
+        canvas.height *= 2;
+        this.waifu2xProcessingFunction(image, context);
+      };
+      image.src = canvas.toDataURL();
     },
   },
 };

@@ -27,6 +27,7 @@ async function enlarge_split_overlapped(original_image,
     model,
     margin_size,
     patch_size = 128) {
+        
     const input_pixels = tf.browser.fromPixels(original_image);  // int32, 3 channels
 
     // reshape to: [1, h, w, 3]
