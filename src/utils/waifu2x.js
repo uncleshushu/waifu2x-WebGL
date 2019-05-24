@@ -1,10 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 
+
 const MODEL_INFO_MAP = {
     // "FSRCNN": {
     //     dir_name: "fsrcnn_model",
     //     margin_size: 3,
-    //     upscale_first: true,
+    //     upscale_firspt: true,
     //     // upscale_first: bicubic_webgl,
     // },
     "VGG-7": {
@@ -15,12 +16,93 @@ const MODEL_INFO_MAP = {
         // upscale_method: bicubic_webgl,
     },
     "UpConv-7": {
-        dir_name: "waifu2x_upconv_7_noise_1_scale2.0x_symmetric_padding_model",
+        // dir_name: "waifu2x_upconv_7_noise_1_scale2.0x_symmetric_padding_model",
+        dir_name: "waifu2x_upconv_7_noise1_scale2.0x_same_padding_model",
         patch_size: 128,
         margin_size: 6,
         upscale_first: false,
     },
 };
+
+
+async function enlarge(original_image,
+    output_canvas_ctx,
+    model,
+    margin_size,
+    patch_size = 128){
+
+    /* eslint-disable no-console */
+    console.log(`memory used before processing: ${tf.memory().numBytes / 1024} KiB`);
+    
+    // reshape to: [1, h, w, 3] and normalize
+    const input = tf.tidy(
+        () => tf.browser.fromPixels(original_image)   // int32, 3 channels
+                .expandDims()
+                .asType('float32')
+                .div(255.0)
+    );
+
+    const [b, h, w, c] = input.shape;
+    const [padded_h, padded_w] = [h + 2 * margin_size, w + 2 * margin_size];
+
+    // pad the input image tensor
+    const padded_input = tf.tidy(() => {
+        const h_padded_input = tf.concat([tf.tile(tf.slice(input, [0, 0, 0, 0], [b, 1, w, c]), [1, margin_size, 1, 1]),
+                                          input, 
+                                          tf.tile(tf.slice(input, [0, h-1, 0, 0], [b, 1, w, c]), [1, margin_size, 1, 1])
+                                         ], 
+                                         1);
+        return tf.concat([tf.tile(tf.slice(h_padded_input, [0, 0, 0, 0], [b, padded_h, 1, c]), [1, 1, margin_size, 1]),
+                          h_padded_input, 
+                          tf.tile(tf.slice(h_padded_input, [0, 0, w-1, 0], [b, padded_h, 1, c]), [1, 1, margin_size, 1])
+                         ],
+                         2);
+    });
+    
+    // split the padded image into overlapped patches
+    const overlapped_patch_size = patch_size + 2 * margin_size;
+    const overlapped_patches = new Array(Math.ceil(h / patch_size)).fill(0)
+                                .map(() => new Array(Math.ceil(w / patch_size)).fill(0))
+                                .map((r, i, rows) => 
+                                        r.map((v, j, row) =>
+                                            tf.slice(padded_input, 
+                                                     [0, i * patch_size, j * patch_size, 0],
+                                                     [b,
+                                                      i < rows.length - 1 ? overlapped_patch_size : padded_h - i * patch_size,
+                                                      j < row.length - 1 ? overlapped_patch_size : padded_w - j * patch_size,
+                                                      c])));
+
+
+    for(let i = 0; i < overlapped_patches.length; i++){
+        let row = overlapped_patches[i];
+        for(let j = 0; j < row.length; j++){
+            const overlapped_patch = row[j];
+            const enlarged_patch_pixels = tf.tidy(() => {        
+                const enlarged_overlapped_patch_pixels = model.predict(overlapped_patch).squeeze();
+                let [eop_h, eop_w, eop_c] = enlarged_overlapped_patch_pixels.shape;
+                return enlarged_overlapped_patch_pixels
+                        .slice([2 * margin_size, 2 * margin_size, 0], 
+                                [eop_h - 4 * margin_size, eop_w - 4 * margin_size, eop_c]);
+            });
+            // eslint-disable-next-line
+            const [enlarged_patch_h, enlarged_patch_w, c] = enlarged_patch_pixels.shape;
+            const enlarged_patch_bytes = await tf.browser.toPixels(enlarged_patch_pixels);
+            enlarged_patch_pixels.dispose();
+            overlapped_patch.dispose();
+
+            const enlarged_patch_image_data = new ImageData(enlarged_patch_bytes,
+                                                            enlarged_patch_w,
+                                                            enlarged_patch_h);
+            output_canvas_ctx.putImageData(enlarged_patch_image_data, 2 * j * patch_size, 2 * i * patch_size);
+        }
+    }
+
+    tf.dispose(padded_input);
+    tf.dispose(input);
+
+    /* eslint-disable no-console */
+    console.log(`memory used after processing: ${tf.memory().numBytes / 1024} KiB`);
+}
 
 async function enlarge_split_overlapped(original_image,
     output_canvas_ctx,
@@ -241,6 +323,7 @@ async function tf_time(func, ...args) {
 
 export default {
     MODEL_INFO_MAP,
+    enlarge,
     enlarge_split_overlapped,
     enlarge_split_overlapped_no_async,
     async loadModel(modelPath) {

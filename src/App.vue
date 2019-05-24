@@ -95,7 +95,7 @@ export default {
 
   created: async function() {
     this.waifu2xModel =  await waifu2x.loadModel(this.waifu2xModelPath);
-    this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge_split_overlapped(
+    this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge(
                                                             image, canvasContext2D, 
                                                             this.waifu2xModel,
                                                             this.waifu2xModelInfo.margin_size,
@@ -145,7 +145,7 @@ export default {
         this.waifu2xModel.dispose();
       }
       this.waifu2xModel =  await waifu2x.loadModel(this.waifu2xModelPath);
-      this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge_split_overlapped(
+      this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge(
                                                             image, canvasContext2D, 
                                                             this.waifu2xModel,
                                                             this.waifu2xModelInfo.margin_size,
