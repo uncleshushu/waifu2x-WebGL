@@ -1,5 +1,10 @@
 language: node_js
 
+node_js:
+  - "node"
+
+cache: npm
+
 install: npm install
 
 script: npm build
