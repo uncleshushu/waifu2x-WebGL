@@ -98,8 +98,7 @@ export default {
     this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge(
                                                             image, canvasContext2D, 
                                                             this.waifu2xModel,
-                                                            this.waifu2xModelInfo.margin_size,
-                                                            this.waifu2xPatchSize);
+                                                            this.waifu2xModelInfo);
     this.waifu2xWarmUp();
   },
 
@@ -148,8 +147,7 @@ export default {
       this.waifu2xProcessingFunction = (image, canvasContext2D) => waifu2x.enlarge(
                                                             image, canvasContext2D, 
                                                             this.waifu2xModel,
-                                                            this.waifu2xModelInfo.margin_size,
-                                                            this.waifu2xPatchSize);
+                                                            this.waifu2xModelInfo);
       this.waifu2xWarmUp();
       
       this.state = this.STATE.BEFORE_PROCESSING;

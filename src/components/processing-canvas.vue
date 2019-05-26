@@ -4,19 +4,15 @@
     <canvas ref="canvas"></canvas>
     
     <v-card-title primary-title>
-      State: {{stateString}}
+      <span>State: {{stateString}}</span>
+      <v-spacer></v-spacer>
+      <span>Original Size: {{image.width}} × {{image.height}}</span>
     </v-card-title>
 
     <v-card-title primary-title>
-      Original Size: {{image.width}} × {{image.height}}
-    </v-card-title>
-
-    <v-card-title primary-title>
-      Scaled Size: {{image.width * 2}} × {{image.height * 2}}
-    </v-card-title>
-
-    <v-card-title primary-title ref="timeInfo">  
-      <div>Time: {{wallTimeSecond}} s</div>
+      <span>Time: {{wallTimeSecond}} s</span>
+      <v-spacer></v-spacer>
+      <span>Scaled Size: {{image.width * 2}} × {{image.height * 2}}</span>
     </v-card-title>
 
   </v-card>
