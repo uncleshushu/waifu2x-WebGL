@@ -7,7 +7,7 @@
         <span class="font-weight-light">-WebGL</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn flat href="https://github.com/vuetifyjs/vuetify/releases/latest" target="_blank">
+      <v-btn flat href="https://github.com/uncleshushu/waifu2x-WebGL" target="_blank">
         <span class="mr-2">Github Repo</span>
       </v-btn>
     </v-toolbar>
