@@ -1,6 +1,8 @@
 # waifu2x-WebGL
 
-waifu2x accelerated by WebGL computing frameworks ([tfjs](https://www.tensorflow.org/js) for now)
+[waifu2x](https://github.com/nagadomi/waifu2x) accelerated by WebGL computing frameworks ([tfjs](https://www.tensorflow.org/js) for now).
+
+For waifu2x users, please go to [demo site](https://uncleshushu.github.io/waifu2x-WebGL/).
 
 ## Project setup
 
